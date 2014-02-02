@@ -14,6 +14,8 @@ class ChatLogParser{
     public $numFinalLines = 0;
     
     public $numFilteredLines = 0;
+	
+	public $filteredLines = array();
     
     public $numErrorLines = 0;
     
@@ -31,7 +33,9 @@ class ChatLogParser{
     
     public $numWords = 0;
     
-    private $trimString = ' ,:.!_-"&()+;/[]|?\'>#';
+    private $trimString = ' ,:.!_-"&()+;/[]|?\'<>#=%*Ø°';
+	
+	private $noWord = array('/\d+\/{1}\d+/','/\d+\-{1}\d+/','/\d{2}:{1}\d{2}$/');
     
     private $lines = array();   
     
@@ -88,12 +92,18 @@ class ChatLogParser{
                     array_push($this->users,$user);
                 }
             }else{
-                $word = trim(preg_replace('/\{{1}[a-zA-Z\Ã¤\Ã„]{1,15}\}{1}/', '', trim($word,$this->trimString)),'{}');
+				if(preg_match('\[{1}[\w\d-]*\]{1}', $word)){
+					$word = trim($word,'[]');
+				}
+                $word = trim(preg_replace('/\{{1}[a-zA-Z\ä\Ä]{1,15}\}{1}/', '', trim($word,$this->trimString)),'{}');
                 if($word == '') continue;
-                if(preg_match('/^\d*\.*?,*?\d*?k*?x*?$/', $word)) continue; 
+                if(preg_match('/^\d*\.*?,*?\d*?k*?x*?$/', $word)) continue;
+				if(preg_match($this->noWord[0], $word)) continue;
+				if(preg_match($this->noWord[1], $word)) continue;
+                if(preg_match($this->noWord[2], $word)) continue;
                 $this->numWords++;
                 if(!array_key_exists(strtoupper($word), $this->words)){
-                    $this->words[strtoupper($word)] = array('count' => 1, 'word' => strtoupper($word));
+                    $this->words[strtoupper($word)] = array('count' => 1, 'word' => strtoupper($word),'line' => $this->currentLine);
                 }else{
                     $this->words[strtoupper($word)]['count']++;
                 }
@@ -112,6 +122,7 @@ class ChatLogParser{
                     $this->numErrorLines++;
                 }
             }else{
+				$this->filteredLines[] = $this->currentLine;
                 $this->numFilteredLines++;
             }
         }
